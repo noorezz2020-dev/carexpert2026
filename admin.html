@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Expert - لوحة تحكم المدير</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fb;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .logo span {
+            color: #3b82f6;
+        }
+
+        .logout-btn {
+            background: #ef4444;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-card h3 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .stat-card p {
+            color: #64748b;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: #e2e8f0;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .status-new {
+            background: #10b98120;
+            color: #10b981;
+        }
+
+        .status-completed {
+            background: #3b82f620;
+            color: #3b82f6;
+        }
+
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        canvas {
+            max-height: 300px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+            table {
+                font-size: 12px;
+            }
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Car<span>Expert</span> <span style="font-size: 14px;">مدير النظام</span></div>
+            <button class="logout-btn" onclick="logout()">تسجيل خروج</button>
+        </div>
+
+        <!-- إحصائيات -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><h3 id="totalUsers">0</h3><p>إجمالي المستخدمين</p></div>
+            <div class="stat-card"><h3 id="totalBookings">0</h3><p>إجمالي الحجوزات</p></div>
+            <div class="stat-card"><h3 id="todayBookings">0</h3><p>حجوزات اليوم</p></div>
+            <div class="stat-card"><h3 id="totalChats">0</h3><p>إجمالي المحادثات</p></div>
+        </div>
+
+        <!-- الرسوم البيانية -->
+        <div class="charts-row">
+            <div class="card"><h3>📈 الحجوزات خلال الأيام</h3><canvas id="bookingsChart"></canvas></div>
+            <div class="card"><h3>🥧 توزيع الخدمات</h3><canvas id="servicesChart"></canvas></div>
+        </div>
+
+        <!-- تبويبات -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('users')">👥 المستخدمين</button>
+            <button class="tab-btn" onclick="showTab('bookings')">📅 الحجوزات</button>
+            <button class="tab-btn" onclick="showTab('chats')">💬 المحادثات</button>
+        </div>
+
+        <!-- جدول المستخدمين -->
+        <div id="usersTab" class="card">
+            <h3 style="margin-bottom: 15px;">👥 قائمة المستخدمين</h3>
+            <div style="overflow-x: auto;">
+                <table id="usersTable">
+                    <thead>
+                        <tr><th>ID</th><th>الاسم</th><th>البريد الإلكتروني</th><th>الهاتف</th><th>تاريخ التسجيل</th><th>إجراءات</th</tr>
+                    </thead>
+                    <tbody id="usersList"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- جدول الحجوزات -->
+        <div id="bookingsTab" class="card" style="display: none;">
+            <h3 style="margin-bottom: 15px;">📅 قائمة الحجوزات</h3>
+            <div style="overflow-x: auto;">
+                <table id="bookingsTable">
+                    <thead>
+                        <tr><th>ID</th><th>المستخدم</th><th>الخدمة</th><th>العميل</th><th>الهاتف</th><th>الموقع</th><th>التاريخ</th><th>الحالة</th><th>إجراءات</th</tr>
+                    </thead>
+                    <tbody id="bookingsList"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- جدول المحادثات -->
+        <div id="chatsTab" class="card" style="display: none;">
+            <h3 style="margin-bottom: 15px;">💬 سجل المحادثات</h3>
+            <div style="overflow-x: auto;">
+                <table id="chatsTable">
+                    <thead>
+                        <tr><th>ID</th><th>المستخدم</th><th>الرسالة</th><th>الرد</th><th>التاريخ</th</tr>
+                    </thead>
+                    <tbody id="chatsList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let adminUser = null;
+
+        function checkAdminAuth() {
+            const user = localStorage.getItem('carServeUser');
+            if (!user) {
+                window.location.href = '/auth.html';
+                return false;
+            }
+            adminUser = JSON.parse(user);
+            if (adminUser.email !== 'admin@carexpert.com') {
+                alert('❌ هذه الصفحة مخصصة للمدير فقط');
+                window.location.href = '/dashboard.html';
+                return false;
+            }
+            return true;
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('totalUsers').textContent = data.stats.totalUsers;
+                    document.getElementById('totalBookings').textContent = data.stats.totalBookings;
+                    document.getElementById('todayBookings').textContent = data.stats.todayBookings;
+                    document.getElementById('totalChats').textContent = data.stats.totalChats;
+                }
+            } catch(e) { console.log(e); }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users');
+                const data = await response.json();
+                if (data.success) {
+                    const tbody = document.getElementById('usersList');
+                    tbody.innerHTML = data.users.map(user => `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.name}</td>
+                            <td>${user.email}</td>
+                            <td>${user.phone}</td>
+                            <td>${new Date(user.created_at).toLocaleDateString('ar')}</td>
+                            <td><button class="delete-btn" onclick="deleteUser(${user.id})">حذف</button></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch(e) { console.log(e); }
+        }
+
+        async function loadBookings() {
+            try {
+                const response = await fetch('/api/admin/bookings');
+                const data = await response.json();
+                if (data.success) {
+                    const tbody = document.getElementById('bookingsList');
+                    tbody.innerHTML = data.bookings.map(booking => `
+                        <tr>
+                            <td>${booking.id}</td>
+                            <td>${booking.user_name || '-'}</td>
+                            <td>${booking.service}</td>
+                            <td>${booking.name}</td>
+                            <td>${booking.phone}</td>
+                            <td>${booking.location}</td>
+                            <td>${new Date(booking.date_time).toLocaleString('ar')}</td>
+                            <td>
+                                <select onchange="updateBookingStatus(${booking.id}, this.value)">
+                                    <option value="جديد" ${booking.status === 'جديد' ? 'selected' : ''}>جديد</option>
+                                    <option value="قيد التنفيذ" ${booking.status === 'قيد التنفيذ' ? 'selected' : ''}>قيد التنفيذ</option>
+                                    <option value="مكتمل" ${booking.status === 'مكتمل' ? 'selected' : ''}>مكتمل</option>
+                                </select>
+                            </td>
+                            <td><button class="delete-btn" onclick="deleteBooking(${booking.id})">حذف</button></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch(e) { console.log(e); }
+        }
+
+        async function loadChats() {
+            try {
+                const response = await fetch('/api/admin/chats');
+                const data = await response.json();
+                if (data.success) {
+                    const tbody = document.getElementById('chatsList');
+                    tbody.innerHTML = data.chats.map(chat => `
+                        <tr>
+                            <td>${chat.id}</td>
+                            <td>${chat.user_name || '-'}</td>
+                            <td style="max-width:200px; overflow:hidden;">${chat.message.substring(0, 50)}${chat.message.length > 50 ? '...' : ''}</td>
+                            <td style="max-width:200px; overflow:hidden;">${chat.response.substring(0, 50)}${chat.response.length > 50 ? '...' : ''}</td>
+                            <td>${new Date(chat.created_at).toLocaleString('ar')}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch(e) { console.log(e); }
+        }
+
+        async function updateBookingStatus(bookingId, status) {
+            try {
+                const response = await fetch(`/api/admin/booking/${bookingId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    loadBookings();
+                    loadStats();
+                }
+            } catch(e) { console.log(e); }
+        }
+
+        async function deleteUser(userId) {
+            if (confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
+                const response = await fetch(`/api/admin/user/${userId}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    loadUsers();
+                    loadStats();
+                }
+            }
+        }
+
+        async function deleteBooking(bookingId) {
+            if (confirm('هل أنت متأكد من حذف هذا الحجز؟')) {
+                const response = await fetch(`/api/admin/booking/${bookingId}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    loadBookings();
+                    loadStats();
+                }
+            }
+        }
+
+        function initCharts() {
+            new Chart(document.getElementById('bookingsChart'), {
+                type: 'line',
+                data: {
+                    labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
+                    datasets: [{ label: 'الحجوزات', data: [5, 8, 12, 15, 18, 22, 20], borderColor: '#3b82f6', tension: 0.4 }]
+                },
+                options: { responsive: true }
+            });
+            new Chart(document.getElementById('servicesChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['فحص', 'غسيل', 'إكسسوارات', 'صيانة', 'طوارئ'],
+                    datasets: [{ data: [40, 25, 15, 12, 8], backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }]
+                },
+                options: { responsive: true }
+            });
+        }
+
+        function showTab(tab) {
+            document.getElementById('usersTab').style.display = 'none';
+            document.getElementById('bookingsTab').style.display = 'none';
+            document.getElementById('chatsTab').style.display = 'none';
+            document.getElementById(`${tab}Tab`).style.display = 'block';
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (tab === 'users') loadUsers();
+            if (tab === 'bookings') loadBookings();
+            if (tab === 'chats') loadChats();
+        }
+
+        function logout() {
+            localStorage.removeItem('carServeUser');
+            window.location.href = '/auth.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAdminAuth()) {
+                initCharts();
+                loadStats();
+                loadUsers();
+            }
+        });
+    </script>
+</body>
+</html>

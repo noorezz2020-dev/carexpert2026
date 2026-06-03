@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Expert - لوحة التحكم</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Tajawal', 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(rgba(15,23,42,0.78), rgba(15,23,42,0.88)), url('/static/login-bg.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(59,130,246,0.18), transparent 30%),
+                        radial-gradient(circle at bottom left, rgba(37,99,235,0.18), transparent 30%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* شريط جانبي بنفس استايل onboarding */
+        .sidebar {
+            width: 280px;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+            border-left: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+            transition: all 0.3s ease;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.08);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(59,130,246,0.5);
+            border-radius: 10px;
+        }
+
+        .logo-area {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-img {
+            width: 45px;
+            height: 45px;
+            border-radius: 14px;
+            object-fit: cover;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+
+        .logo-text h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: white;
+        }
+
+        .logo-text h2 span { 
+            color: #3b82f6;
+        }
+        .logo-text p { font-size: 10px; opacity: 0.7; color: #cbd5e1; }
+
+        .nav-menu {
+            flex: 1;
+            padding: 20px 16px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #cbd5e1;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(-4px);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            box-shadow: 0 8px 20px rgba(37,99,235,0.3);
+        }
+
+        .nav-icon { font-size: 20px; width: 32px; }
+
+        .user-info-sidebar {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .user-details h4 { font-size: 14px; font-weight: 600; }
+        .user-details p { font-size: 11px; opacity: 0.7; }
+
+        .logout-btn {
+            background: rgba(239,68,68,0.2);
+            border: 1px solid rgba(239,68,68,0.3);
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: #fca5a5;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(239,68,68,0.4);
+            color: white;
+        }
+
+        /* المحتوى الرئيسي */
+        .main-content {
+            flex: 1;
+            margin-right: 280px;
+            padding: 20px 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* هيدر بنفس استايل containers */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 28px;
+            padding: 15px 25px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+        }
+
+        .page-title { 
+            font-size: 24px; 
+            font-weight: 700; 
+            color: white;
+        }
+        .welcome-message { color: #cbd5e1; }
+        .welcome-message span { color: #3b82f6; font-weight: 600; }
+
+        /* بطاقات الإحصائيات بنفس استايل */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(59,130,246,0.4);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+        }
+
+        .stat-info h3 { 
+            font-size: 32px; 
+            font-weight: 800; 
+            color: white;
+        }
+        .stat-info p { color: #cbd5e1; font-size: 14px; }
+        .stat-icon { 
+            width: 55px; 
+            height: 55px; 
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 28px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* بطاقات الرسوم البيانية */
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .chart-card h3 { 
+            margin-bottom: 20px; 
+            color: white; 
+            font-size: 18px;
+            font-weight: 600;
+        }
+        canvas { max-height: 300px; width: 100%; }
+
+        /* خدماتنا */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .service-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .service-card:hover { 
+            transform: translateY(-5px); 
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(59,130,246,0.4);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+        }
+        .service-card.selected { 
+            border: 1px solid #3b82f6; 
+            background: rgba(59,130,246,0.2);
+            box-shadow: 0 0 20px rgba(59,130,246,0.2);
+        }
+        .service-icon { font-size: 45px; margin-bottom: 15px; }
+        .service-card h3 { font-size: 18px; margin-bottom: 10px; color: white; }
+        .service-card p { color: #cbd5e1; font-size: 13px; margin-bottom: 15px; }
+        .book-now-btn { 
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white; 
+            border: none; 
+            padding: 8px 20px; 
+            border-radius: 30px; 
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .book-now-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(37,99,235,0.4);
+        }
+
+        /* تتبع الخدمات */
+        .tracking-card { 
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px; 
+            padding: 20px; 
+            margin-bottom: 30px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .tracking-card h3 { color: white; margin-bottom: 15px; }
+        #map { 
+            height: 450px; 
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .service-teams { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .team-badge { 
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 16px; 
+            border-radius: 30px; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #cbd5e1;
+        }
+        .team-badge:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(59,130,246,0.4);
+            transform: translateY(-2px);
+        }
+        .team-badge .status { width: 10px; height: 10px; border-radius: 50%; background: #10b981; box-shadow: 0 0 5px #10b981; }
+        .team-badge .status.busy { background: #ef4444; box-shadow: 0 0 5px #ef4444; }
+        .location-form { 
+            margin-top: 20px; 
+            padding: 20px; 
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px; 
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .location-form h4 { color: white; margin-bottom: 15px; }
+        .location-form input { 
+            padding: 12px 16px; 
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 30px; 
+            width: 60%; 
+            margin-left: 10px;
+            color: white;
+        }
+        .location-form input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+        }
+        .location-form input::placeholder { color: #94a3b8; }
+        .location-form button { 
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 30px; 
+            cursor: pointer; 
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        .location-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37,99,235,0.4);
+        }
+        .contact-number { 
+            margin-top: 15px; 
+            text-align: center; 
+            font-size: 14px; 
+            color: #60a5fa; 
+            font-weight: bold; 
+        }
+
+        /* نافذة شات عائمة */
+        .floating-chat-window {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 450px;
+            height: 650px;
+            background: rgba(15,23,42,0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 10000;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+            animation: slideUp 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
+        }
+
+        .floating-chat-window.open {
+            display: flex;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            user-select: none;
+        }
+
+        .chat-header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-avatar {
+            width: 45px;
+            height: 45px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .chat-header-text h4 {
+            color: white;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .chat-header-text p {
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+            margin: 3px 0 0;
+        }
+
+        .chat-header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-header-actions button {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .chat-header-actions button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+
+        .quick-options {
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .quick-title {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .quick-btn {
+            background: rgba(59,130,246,0.2);
+            border: 1px solid rgba(59,130,246,0.3);
+            color: #e2e8f0;
+            padding: 8px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .quick-btn:hover {
+            background: rgba(59,130,246,0.4);
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .chat-messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .chat-messages-area::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .chat-messages-area::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+
+        .chat-messages-area::-webkit-scrollbar-thumb {
+            background: rgba(59,130,246,0.5);
+            border-radius: 10px;
+        }
+
+        .chat-bubble-user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .chat-bubble-user .bubble-content {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 20px;
+            border-bottom-right-radius: 4px;
+            max-width: 85%;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .chat-bubble-bot {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .chat-bubble-bot .bubble-content {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            color: #f1f5f9;
+            padding: 10px 16px;
+            border-radius: 20px;
+            border-bottom-left-radius: 4px;
+            max-width: 85%;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            font-size: 13px;
+            line-height: 1.5;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .chat-typing {
+            display: none;
+            padding: 10px 16px;
+            color: #94a3b8;
+            font-size: 12px;
+            gap: 8px;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .chat-typing span {
+            width: 8px;
+            height: 8px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: inline-block;
+            animation: typingDot 1.4s infinite;
+        }
+
+        .chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingDot {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-8px); opacity: 1; }
+        }
+
+        .chat-input-area {
+            display: flex;
+            padding: 12px;
+            gap: 10px;
+            background: rgba(15,23,42,0.95);
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
+            color: white;
+            font-family: inherit;
+            font-size: 13px;
+            resize: none;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #3b82f6;
+            background: rgba(255,255,255,0.12);
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+
+        .send-chat-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .send-chat-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(37,99,235,0.4);
+        }
+
+        .open-chat-btn {
+            position: fixed;
+            bottom: 160px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 9999;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            transition: all 0.3s ease;
+            border: none;
+            color: white;
+            font-size: 34px;
+        }
+
+        .open-chat-btn:hover {
+            transform: scale(1.1) translateY(-3px);
+            box-shadow: 0 15px 35px rgba(37,99,235,0.4);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* لوحة تحكم المدير */
+        .admin-controls {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .admin-controls h3, .admin-controls h4 { color: white; margin-bottom: 15px; }
+        .admin-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .admin-stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 15px;
+            text-align: center;
+        }
+        .admin-stat-card h4 { 
+            font-size: 28px; 
+            font-weight: 800; 
+            color: #60a5fa;
+        }
+        .admin-stat-card p { color: #cbd5e1; }
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            color: #cbd5e1;
+        }
+        .delete-user-btn { 
+            background: rgba(239,68,68,0.2);
+            color: #fca5a5;
+            border: 1px solid rgba(239,68,68,0.3);
+            padding: 5px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .delete-user-btn:hover {
+            background: rgba(239,68,68,0.4);
+            color: white;
+        }
+
+        /* مودال الحجز */
+        .booking-modal { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 1000; 
+            visibility: hidden; 
+            opacity: 0; 
+            transition: all 0.3s; 
+        }
+        .booking-modal.open { visibility: visible; opacity: 1; }
+        .booking-form-container { 
+            background: rgba(15,23,42,0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 32px; 
+            padding: 30px; 
+            width: 90%; 
+            max-width: 500px; 
+            max-height: 90vh; 
+            overflow-y: auto; 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+        .booking-form-container h3 { color: white; margin-bottom: 20px; }
+
+        /* الفوتر */
+        .footer { 
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px; 
+            padding: 20px; 
+            margin-top: 30px; 
+            text-align: center; 
+        }
+        .footer-links { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
+        .footer-links a { 
+            text-decoration: none; 
+            color: #cbd5e1; 
+            transition: color 0.3s;
+            font-size: 14px;
+        }
+        .footer-links a:hover { color: #60a5fa; }
+        .footer-copyright { color: #94a3b8; font-size: 12px; }
+
+        /* النماذج */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 500; 
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+        .form-group input, .form-group textarea { 
+            width: 100%; 
+            padding: 12px; 
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px; 
+            color: white;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+            background: rgba(255,255,255,0.12);
+        }
+        .form-group input::placeholder, .form-group textarea::placeholder {
+            color: #94a3b8;
+        }
+        .submit-btn { 
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            border-radius: 30px; 
+            width: 100%; 
+            cursor: pointer; 
+            margin-bottom: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37,99,235,0.4);
+        }
+        .close-modal { 
+            background: rgba(255,255,255,0.08);
+            color: white; 
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px; 
+            border-radius: 30px; 
+            width: 100%; 
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .close-modal:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 30px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37,99,235,0.4); }
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 30px;
+            width: 100%;
+            cursor: pointer;
+            transition: 0.3s;
+            color: white;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .modal.open {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-content {
+            background: rgba(15,23,42,0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 32px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+        .modal-content h3 { color: white; margin-bottom: 20px; }
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 15px;
+            display: block;
+            border: 3px solid #3b82f6;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+        
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
+        th, td { 
+            padding: 12px; 
+            text-align: right; 
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            color: #cbd5e1;
+        }
+        th { 
+            background: rgba(255,255,255,0.05);
+            font-weight: 600;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .logo-text, .nav-item span:last-child, .user-details { display: none; }
+            .main-content { margin-right: 80px; padding: 15px; }
+            .floating-chat-window { width: calc(100% - 40px); right: 20px; left: 20px; bottom: 100px; height: 80vh; }
+            .open-chat-btn { bottom: 140px; right: 20px; width: 55px; height: 55px; font-size: 28px; }
+            .quick-buttons { justify-content: center; }
+            .quick-btn { font-size: 11px; padding: 6px 12px; }
+            .charts-row { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+    <!-- نفس المحتوى الداخلي من dashboard.html السابق -->
+    <!-- ... -->
+</body>
+</html>
+</head>
+<body>
+    <!-- المحتوى كما هو في dashboard.html الأصلي -->
+    <!-- ... باقي محتوى الـ HTML يبقى كما هو من dashboard.html السابق ... -->
+</body>
+</html>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="logo-area">
+                <img src="/static/logo.png" class="logo-img" alt="Logo" onerror="this.style.display='none'">
+                <div class="logo-text"><h2>Car<span>Expert</span></h2><p>خدمات سيارات متكاملة</p></div>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item active" onclick="showPage('dashboard')"><div class="nav-icon">📊</div><span>لوحة التحكم</span></div>
+                <div class="nav-item" onclick="showPage('services')"><div class="nav-icon">🛠️</div><span>خدماتنا</span></div>
+                <div class="nav-item" onclick="showPage('tracking')"><div class="nav-icon">📍</div><span>تتبع الخدمات</span></div>
+                <div class="nav-item" onclick="showPage('bookings')"><div class="nav-icon">📅</div><span>حجوزاتي</span></div>
+                <div class="nav-item" onclick="window.location.href='/contact.html'"><div class="nav-icon">📞</div><span>تواصل معنا</span></div>
+                <div class="nav-item" onclick="window.location.href='/about.html'"><div class="nav-icon">🏢</div><span>من نحن</span></div>
+                <div class="nav-item" onclick="window.location.href='/faq.html'"><div class="nav-icon">❓</div><span>أسئلة شائعة</span></div>
+                <div class="nav-item" onclick="openProfileModal()"><div class="nav-icon">👤</div><span>ملفي الشخصي</span></div>
+                <div class="nav-item" id="adminNavItem" style="display: none;"><div class="nav-icon">👑</div><span>إدارة النظام</span></div>
+            </div>
+            <div class="user-info-sidebar">
+                <div class="user-avatar" id="sidebarAvatar">👤</div>
+                <div class="user-details">
+                    <h4 id="sidebarUserName">عميل</h4>
+                    <p>مرحباً بك</p>
+                    <button class="logout-btn" onclick="logout()">تسجيل خروج</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1 class="page-title" id="pageTitle">لوحة التحكم</h1>
+                <div class="welcome-message" id="welcomeMessage"></div>
+            </div>
+
+            <div id="dashboardPage">
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-info"><h3 id="totalServices">0</h3><p>إجمالي الخدمات</p></div><div class="stat-icon">🔧</div></div>
+                    <div class="stat-card"><div class="stat-info"><h3 id="activeTeams">0</h3><p>فرق نشطة</p></div><div class="stat-icon">👥</div></div>
+                    <div class="stat-card"><div class="stat-info"><h3 id="todayBookings">0</h3><p>حجوزات اليوم</p></div><div class="stat-icon">📅</div></div>
+                    <div class="stat-card"><div class="stat-info"><h3 id="avgResponse">0</h3><p>متوسط الاستجابة</p></div><div class="stat-icon">⏱️</div></div>
+                </div>
+                <div class="charts-row">
+                    <div class="chart-card"><h3>📈 عدد الخدمات خلال الأيام</h3><canvas id="servicesChart"></canvas></div>
+                    <div class="chart-card"><h3>🥧 توزيع الخدمات</h3><canvas id="servicesPieChart"></canvas></div>
+                </div>
+                <div class="chart-card"><h3>📋 آخر الحجوزات</h3><div id="recentBookingsList"></div></div>
+            </div>
+
+            <div id="servicesPage" style="display: none;"><div class="chart-card"><h3>🛠️ خدماتنا المتميزة</h3><div class="services-grid" id="servicesGrid"></div></div></div>
+
+            <div id="trackingPage" style="display: none;">
+                <div class="tracking-card"><h3>📍 الفرق المتنقلة</h3><div class="service-teams" id="teamsList"></div><div id="map"></div>
+                <div class="location-form"><h4>📍 حدد موقعك</h4><input type="text" id="clientLocation" placeholder="أدخل عنوانك"><button onclick="sendLocation()">إرسال الموقع</button><button onclick="getCurrentLocation()">موقعي الحالي</button><div id="locationStatus"></div>
+                <div class="contact-number">📞 للتواصل مع الفريق: <span dir="ltr">+20 100 000 0000</span></div></div></div>
+            </div>
+
+            <div id="bookingsPage" style="display: none;"><div class="chart-card"><h3>📋 جميع الحجوزات</h3><div id="allBookingsList"></div></div></div>
+
+            <div id="adminPage" style="display: none;">
+                <div class="admin-controls">
+                    <h3>👑 لوحة تحكم المدير</h3>
+                    <div class="admin-stats-grid">
+                        <div class="admin-stat-card"><h4 id="adminTotalUsers">0</h4><p>إجمالي المستخدمين</p></div>
+                        <div class="admin-stat-card"><h4 id="adminTotalBookings">0</h4><p>إجمالي الحجوزات</p></div>
+                        <div class="admin-stat-card"><h4 id="adminTotalChats">0</h4><p>إجمالي المحادثات</p></div>
+                    </div>
+                    <h4>تحديث الإحصائيات</h4>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="number" id="editTotalServices" placeholder="إجمالي الخدمات" style="flex:1; padding: 8px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                        <input type="number" id="editActiveTeams" placeholder="الفرق النشطة" style="flex:1; padding: 8px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                        <input type="number" id="editAvgResponse" placeholder="متوسط الاستجابة" style="flex:1; padding: 8px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    </div>
+                    <button onclick="updateAdminStats()" style="background: #3b82f6; color: white; border: none; padding: 8px 20px; border-radius: 30px;">تحديث الإحصائيات</button>
+                    <h4 style="margin-top: 20px;">👥 المستخدمين</h4>
+                    <div id="adminUsersList" style="max-height: 300px; overflow-y: auto;"></div>
+                    <h4 style="margin-top: 20px;">📅 الحجوزات</h4>
+                    <div id="adminBookingsList" style="max-height: 300px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-links">
+            <a href="/about.html">من نحن</a>
+            <a href="/contact.html">تواصل معنا</a>
+            <a href="/faq.html">الأسئلة الشائعة</a>
+            <a href="/privacy.html">سياسة الخصوصية</a>
+            <a href="/terms.html">الشروط والأحكام</a>
+        </div>
+        <div class="footer-copyright">© 2026 Car Expert - جميع الحقوق محفوظة</div>
+    </div>
+
+    <!-- زر فتح الشات العائم -->
+    <button class="open-chat-btn" id="openChatBtn">🤖</button>
+
+    <!-- نافذة الشات العائمة مع اختيارات سريعة -->
+    <div class="floating-chat-window" id="floatingChatWindow">
+        <div class="chat-header" id="chatHeader">
+            <div class="chat-header-info">
+                <div class="chat-avatar">🤖</div>
+                <div class="chat-header-text">
+                    <h4>Car Expert AI</h4>
+                    <p>متصل الآن | Gemini AI</p>
+                </div>
+            </div>
+            <div class="chat-header-actions">
+                <button onclick="minimizeChat()" id="minimizeChatBtn">−</button>
+                <button onclick="closeChat()">✕</button>
+            </div>
+        </div>
+        
+        <!-- الاختيارات السريعة -->
+        <div class="quick-options">
+            <div class="quick-title">
+                <span>⚡</span> اختر مشكلتك بسرعة
+            </div>
+            <div class="quick-buttons" id="quickButtons">
+                <button class="quick-btn" onclick="sendQuickMessage('السيارة ما بتدورش عند الدوران')"> السيارة ما بتدورش</button>
+                <button class="quick-btn" onclick="sendQuickMessage('صوت غريب في الموتور')"> صوت غريب في الموتور</button>
+                <button class="quick-btn" onclick="sendQuickMessage('الفرامل مش شغالة كويس')"> مشاكل في الفرامل</button>
+                <button class="quick-btn" onclick="sendQuickMessage('البنزين بيخلص بسرعة')"> استهلاك البنزين عالي</button>
+                <button class="quick-btn" onclick="sendQuickMessage('لمبة المحرك شغالة')"> لمبة المحرك شغالة</button>
+                <button class="quick-btn" onclick="sendQuickMessage('عايز أغير الزيت')"> تغيير الزيت</button>
+                <button class="quick-btn" onclick="sendQuickMessage('السيارة ترجف')"> السيارة ترجف</button>
+                <button class="quick-btn" onclick="sendQuickMessage('درجة حرارة الماتور مرتفعة')">درجة حرارة الماتور مرتفعة</button>
+            </div>
+        </div>
+        
+        <div class="chat-messages-area" id="chatMessagesArea">
+            <div class="chat-bubble-bot">
+                <div class="bubble-content">
+                    👋 مرحباً! أنا مساعد Car Expert.<br>
+                    أخبرني عن مشكلة سيارتك أو اختر من الأزرار السريعة أعلاه، وسأقوم بتحليل المشكلة وتقديم الحلول المناسبة.
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-typing" id="chatTyping">
+            <span></span><span></span><span></span>
+            <span style="margin-right: 8px;">Car Expert AI يكتب...</span>
+        </div>
+        
+        <div class="chat-input-area">
+            <textarea class="chat-input" id="chatMessageInput" rows="1" placeholder="اكتب مشكلة سيارتك هنا..."></textarea>
+            <button class="send-chat-btn" onclick="sendChatMessage()">➤</button>
+        </div>
+    </div>
+
+    <!-- مودال البروفايل -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <h3>👤 ملفي الشخصي</h3>
+            <img id="profileImage" class="profile-img" src="/static/avatar.png" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%233b82f6%22/%3E%3Ctext x=%2250%22 y=%2265%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22white%22%3E👤%3C/text%3E%3C/svg%3E'">
+            <input type="file" id="profilePhotoInput" accept="image/*" style="display: none;" onchange="uploadProfilePhoto(event)">
+            <button class="btn-secondary" onclick="document.getElementById('profilePhotoInput').click()" style="margin-bottom: 15px;">📸 تغيير الصورة</button>
+            <div class="form-group"><label>الاسم</label><input type="text" id="profileName" placeholder="الاسم الكامل"></div>
+            <div class="form-group"><label>البريد الإلكتروني</label><input type="email" id="profileEmail" placeholder="example@email.com"></div>
+            <div class="form-group"><label>رقم الهاتف</label><input type="tel" id="profilePhone" placeholder="05xxxxxxxx"></div>
+            <button class="btn-primary" onclick="updateProfile()">حفظ التغييرات</button>
+            <button class="btn-secondary" onclick="closeProfileModal()">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- مودال الحجز -->
+    <div id="bookingModal" class="booking-modal"><div class="booking-form-container"><h3 id="modalServiceName">حجز الخدمة</h3><form id="modalBookingForm"><div class="form-group"><label>الاسم</label><input type="text" id="modalFullName" required></div><div class="form-group"><label>الهاتف</label><input type="tel" id="modalPhone" required></div><div class="form-group"><label>الموقع</label><input type="text" id="modalLocation" required></div><div class="form-group"><label>التاريخ والوقت</label><input type="datetime-local" id="modalDateTime" required></div><div class="form-group"><label>تفاصيل إضافية</label><textarea id="modalCarDetails" rows="2"></textarea></div><button type="submit" class="submit-btn">تأكيد الحجز</button><button type="button" class="close-modal" onclick="closeBookingModal()">إلغاء</button></form></div></div>
+
+    <script>
+        // متغيرات عامة
+        let currentUserId = null;
+        let currentUser = null;
+        let isAdmin = false;
+        let map, markers = [], clientMarker = null, movementInterval;
+        let isChatDragging = false;
+        let chatOffsetX = 0, chatOffsetY = 0;
+
+        const servicesList = [
+            { id: 1, name: "فحص السيارة في موقع العميل", icon: "🔍", shortDesc: "فحص كامل للسيارة في مكان تواجدك" },
+            { id: 2, name: "فحص شامل للسيارات المستعملة", icon: "📋", shortDesc: "فحص دقيق قبل الشراء" },
+            { id: 3, name: "غسيل السيارات بأحدث التقنيات", icon: "🧼", shortDesc: "غسيل احترافي في أي مكان" },
+            { id: 4, name: "تركيب إكسسوارات - فريق متنقل", icon: "🎨", shortDesc: "تركيب جميع الإكسسوارات" },
+            { id: 5, name: "تأجير سيارات للشركات", icon: "🚙", shortDesc: "تأجير للسياحة والنقل" },
+            { id: 6, name: "حجز موعد صيانة", icon: "🛠️", shortDesc: "احجز موعد صيانة بسهولة" },
+            { id: 7, name: "مواعيد صيانة دورية", icon: "⏰", shortDesc: "تغيير زيت وإطارات" },
+            { id: 8, name: "فريق طوارئ - بطاريات وإطارات", icon: "⚡", shortDesc: "خدمة 24/7" }
+        ];
+
+        const teams = [
+            { id: 1, name: "فريق الفحص", status: "active", lat: 30.0444, lng: 31.2357, icon: "🔍" },
+            { id: 2, name: "فريق الغسيل", status: "active", lat: 30.0522, lng: 31.2457, icon: "🧼" },
+            { id: 3, name: "فريق الإكسسوارات", status: "active", lat: 30.0355, lng: 31.2255, icon: "🎨" },
+            { id: 4, name: "فريق الطوارئ", status: "busy", lat: 30.0600, lng: 31.2150, icon: "⚡" }
+        ];
+
+        let currentSelectedService = null;
+
+        // ========== دوال المصادقة ==========
+        async function checkAuth() {
+            const user = localStorage.getItem('carServeUser');
+            if (!user) { 
+                window.location.href = '/auth.html'; 
+                return false; 
+            }
+            try {
+                currentUser = JSON.parse(user);
+                currentUserId = currentUser.id;
+                isAdmin = currentUser.is_admin === 1 || currentUser.is_admin === true;
+                
+                document.getElementById('sidebarUserName').textContent = currentUser.name || 'عميل';
+                if (currentUser.profile_image) {
+                    document.getElementById('sidebarAvatar').innerHTML = `<img src="${currentUser.profile_image}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">`;
+                }
+                
+                const hour = new Date().getHours();
+                let greeting = hour < 12 ? "🌅 صباح الخير" : (hour < 18 ? "☀️ أهلاً وسهلاً" : "🌙 مساء الخير");
+                document.getElementById('welcomeMessage').innerHTML = `${greeting} <span>${currentUser.name || 'عميل'}</span>`;
+                
+                const adminNavItem = document.getElementById('adminNavItem');
+                if (adminNavItem) {
+                    if (isAdmin) {
+                        adminNavItem.style.display = 'flex';
+                        adminNavItem.onclick = () => showPage('admin');
+                        loadAdminData();
+                    } else {
+                        adminNavItem.style.display = 'none';
+                    }
+                }
+                
+                loadStats();
+                loadUserBookings();
+                loadUserCar();
+                return true;
+            } catch(e) { 
+                console.error(e);
+                window.location.href = '/auth.html'; 
+                return false; 
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('carServeUser');
+            window.location.href = '/auth.html';
+        }
+
+        // ========== دوال البروفايل ==========
+        function openProfileModal() {
+            document.getElementById('profileName').value = currentUser.name || '';
+            document.getElementById('profileEmail').value = currentUser.email || '';
+            document.getElementById('profilePhone').value = currentUser.phone || '';
+            if (currentUser.profile_image) {
+                document.getElementById('profileImage').src = currentUser.profile_image;
+            }
+            document.getElementById('profileModal').classList.add('open');
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.remove('open');
+        }
+
+        async function uploadProfilePhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                alert('❌ حجم الصورة كبير جداً. الحد الأقصى 2 ميجابايت');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('user_id', currentUserId);
+            formData.append('photo', file);
+            try {
+                const response = await fetch('/api/user/upload-photo', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('profileImage').src = data.image_url + '?t=' + Date.now();
+                    document.getElementById('sidebarAvatar').innerHTML = `<img src="${data.image_url}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">`;
+                    currentUser.profile_image = data.image_url;
+                    localStorage.setItem('carServeUser', JSON.stringify(currentUser));
+                    alert('✅ تم تحديث الصورة بنجاح');
+                } else {
+                    alert('❌ فشل رفع الصورة: ' + (data.error || 'خطأ غير معروف'));
+                }
+            } catch(e) { 
+                console.error(e);
+                alert('❌ خطأ في رفع الصورة');
+            }
+        }
+
+        async function updateProfile() {
+            const formData = new FormData();
+            formData.append('user_id', currentUserId);
+            formData.append('name', document.getElementById('profileName').value);
+            formData.append('email', document.getElementById('profileEmail').value);
+            formData.append('phone', document.getElementById('profilePhone').value);
+            try {
+                const response = await fetch('/api/user/update', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    currentUser.name = document.getElementById('profileName').value;
+                    currentUser.email = document.getElementById('profileEmail').value;
+                    currentUser.phone = document.getElementById('profilePhone').value;
+                    localStorage.setItem('carServeUser', JSON.stringify(currentUser));
+                    document.getElementById('sidebarUserName').textContent = currentUser.name;
+                    alert('✅ تم تحديث الملف الشخصي بنجاح');
+                    closeProfileModal();
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // ========== دوال الإحصائيات ==========
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('totalServices').textContent = data.stats.total_services || 128;
+                    document.getElementById('activeTeams').textContent = data.stats.active_teams || 4;
+                    document.getElementById('avgResponse').textContent = data.stats.avg_response_time || 15;
+                }
+            } catch(e) {}
+            let bookings = JSON.parse(localStorage.getItem('carServeBookings') || '[]');
+            let today = new Date().toISOString().split('T')[0];
+            let todayCount = bookings.filter(b => b.date?.split('T')[0] === today).length;
+            document.getElementById('todayBookings').textContent = todayCount;
+        }
+
+        // ========== دوال المدير ==========
+        async function loadAdminData() {
+            if (!isAdmin) return;
+            try {
+                const usersRes = await fetch(`/api/admin/all-users?admin_id=${currentUserId}`);
+                const usersData = await usersRes.json();
+                if (usersData.success) {
+                    document.getElementById('adminTotalUsers').textContent = usersData.users.length;
+                    document.getElementById('adminUsersList').innerHTML = usersData.users.map(u => `
+                        <div class="user-item"><span>${u.name} (${u.email})</span>
+                        ${u.id !== currentUserId ? `<button class="delete-user-btn" onclick="deleteUser(${u.id})">حذف</button>` : '<span style="color:#3b82f6;">أنت</span>'}</div>
+                    `).join('');
+                }
+                const bookingsRes = await fetch(`/api/admin/all-bookings?admin_id=${currentUserId}`);
+                const bookingsData = await bookingsRes.json();
+                if (bookingsData.success) {
+                    document.getElementById('adminTotalBookings').textContent = bookingsData.bookings.length;
+                    document.getElementById('adminBookingsList').innerHTML = bookingsData.bookings.slice(0, 10).map(b => `
+                        <div class="user-item"><span>${b.service} - ${b.name}</span>
+                        <button class="delete-user-btn" onclick="deleteBooking(${b.id})">حذف</button></div>
+                    `).join('');
+                }
+                const chatsRes = await fetch(`/api/admin/all-chats?admin_id=${currentUserId}`);
+                const chatsData = await chatsRes.json();
+                if (chatsData.success) document.getElementById('adminTotalChats').textContent = chatsData.chats.length;
+            } catch(e) { console.error(e); }
+        }
+
+        async function updateAdminStats() {
+            const formData = new FormData();
+            formData.append('admin_id', currentUserId);
+            formData.append('total_services', document.getElementById('editTotalServices').value);
+            formData.append('active_teams', document.getElementById('editActiveTeams').value);
+            formData.append('avg_response_time', document.getElementById('editAvgResponse').value);
+            const response = await fetch('/api/admin/update-stats', { method: 'POST', body: formData });
+            const data = await response.json();
+            if (data.success) {
+                alert('✅ تم تحديث الإحصائيات');
+                loadStats();
+            }
+        }
+
+        async function deleteUser(userId) { 
+            if (confirm('حذف المستخدم؟')) {
+                await fetch(`/api/admin/delete-user?user_id=${userId}&admin_id=${currentUserId}`, { method: 'DELETE' });
+                loadAdminData();
+            }
+        }
+        
+        async function deleteBooking(bookingId) { 
+            if (confirm('حذف الحجز؟')) {
+                await fetch(`/api/admin/delete-booking?booking_id=${bookingId}&admin_id=${currentUserId}`, { method: 'DELETE' });
+                loadAdminData();
+            }
+        }
+
+        // ========== دوال الحجوزات ==========
+        async function loadUserBookings() {
+            try {
+                const response = await fetch(`/api/bookings/${currentUserId}`);
+                const data = await response.json();
+                if (data.success) {
+                    localStorage.setItem('carServeBookings', JSON.stringify(data.bookings));
+                    displayRecentBookings();
+                    displayAllBookings();
+                }
+            } catch(e) {}
+        }
+
+        async function saveBookingToDB(booking) {
+            const formData = new FormData();
+            formData.append('user_id', currentUserId);
+            formData.append('service', booking.service);
+            formData.append('name', booking.name);
+            formData.append('phone', booking.phone);
+            formData.append('location', booking.location);
+            formData.append('date_time', booking.dateTime);
+            formData.append('car_details', booking.carDetails || '');
+            const response = await fetch('/api/booking', { method: 'POST', body: formData });
+            const data = await response.json();
+            return data.success;
+        }
+
+        // ========== دوال السيارة ==========
+        async function loadUserCar() {
+            try {
+                const response = await fetch(`/api/get-car/${currentUserId}`);
+                const data = await response.json();
+                if (data.success && data.car) userCarInfo = data.car;
+            } catch(e) {}
+        }
+
+        // ========== دوال الشات العائم مع الاختيارات السريعة ==========
+        function openChat() {
+            const chatWindow = document.getElementById('floatingChatWindow');
+            chatWindow.classList.add('open');
+        }
+
+        function closeChat() {
+            const chatWindow = document.getElementById('floatingChatWindow');
+            chatWindow.classList.remove('open');
+        }
+
+        function minimizeChat() {
+            const chatWindow = document.getElementById('floatingChatWindow');
+            chatWindow.classList.remove('open');
+        }
+
+        function addChatMessage(text, sender) {
+            const container = document.getElementById('chatMessagesArea');
+            const div = document.createElement('div');
+            div.className = sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-bot';
+            
+            let cleanText = text;
+            if (typeof text !== 'string') {
+                cleanText = '❌ حدث خطأ';
+            }
+            cleanText = cleanText.replace(/\n/g, '<br>');
+            
+            div.innerHTML = `<div class="bubble-content">${cleanText}</div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // دالة إرسال رسالة عادية
+        async function sendChatMessage() {
+            const input = document.getElementById('chatMessageInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            addChatMessage(message, 'user');
+            input.value = '';
+            input.style.height = 'auto';
+            
+            document.getElementById('chatTyping').style.display = 'flex';
+            
+            try {
+                const userId = currentUserId || 12;
+                const formData = new FormData();
+                formData.append('user_id', userId);
+                formData.append('message', message);
+                
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                document.getElementById('chatTyping').style.display = 'none';
+                
+                if (data.diagnosis) {
+                    addChatMessage(data.diagnosis.replace(/<br>/g, '\n'), 'bot');
+                } else {
+                    addChatMessage('❌ عذراً، حدث خطأ في التحليل', 'bot');
+                }
+            } catch (error) {
+                document.getElementById('chatTyping').style.display = 'none';
+                addChatMessage('❌ خطأ في الاتصال بالخادم. تأكد من اتصالك بالإنترنت.', 'bot');
+                console.error(error);
+            }
+        }
+
+        // دالة إرسال رسالة سريعة من الأزرار
+        async function sendQuickMessage(message) {
+            addChatMessage(message, 'user');
+            
+            document.getElementById('chatTyping').style.display = 'flex';
+            
+            try {
+                const userId = currentUserId || 12;
+                const formData = new FormData();
+                formData.append('user_id', userId);
+                formData.append('message', message);
+                
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                document.getElementById('chatTyping').style.display = 'none';
+                
+                if (data.diagnosis) {
+                    addChatMessage(data.diagnosis.replace(/<br>/g, '\n'), 'bot');
+                } else {
+                    addChatMessage('❌ عذراً، حدث خطأ في التحليل', 'bot');
+                }
+            } catch (error) {
+                document.getElementById('chatTyping').style.display = 'none';
+                addChatMessage('❌ خطأ في الاتصال بالخادم.', 'bot');
+                console.error(error);
+            }
+        }
+
+        // سحب النافذة
+        function initChatDrag() {
+            const header = document.getElementById('chatHeader');
+            const chatWindow = document.getElementById('floatingChatWindow');
+            
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'BUTTON') return;
+                isChatDragging = true;
+                const rect = chatWindow.getBoundingClientRect();
+                chatOffsetX = e.clientX - rect.left;
+                chatOffsetY = e.clientY - rect.top;
+                chatWindow.style.transition = 'none';
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isChatDragging) return;
+                e.preventDefault();
+                let newX = e.clientX - chatOffsetX;
+                let newY = e.clientY - chatOffsetY;
+                
+                newX = Math.max(10, Math.min(window.innerWidth - chatWindow.offsetWidth - 10, newX));
+                newY = Math.max(10, Math.min(window.innerHeight - chatWindow.offsetHeight - 10, newY));
+                
+                chatWindow.style.right = 'auto';
+                chatWindow.style.left = newX + 'px';
+                chatWindow.style.bottom = 'auto';
+                chatWindow.style.top = newY + 'px';
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isChatDragging) {
+                    isChatDragging = false;
+                    chatWindow.style.transition = '';
+                }
+            });
+        }
+
+        // توسيع النص التلقائي
+        function initAutoResize() {
+            const textarea = document.getElementById('chatMessageInput');
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+            });
+        }
+
+        // ========== دوال الواجهة ==========
+        function showPage(page) {
+            document.querySelectorAll('[id$="Page"]').forEach(p => p.style.display = 'none');
+            const pageElement = document.getElementById(`${page}Page`);
+            if (pageElement) pageElement.style.display = 'block';
+            const titles = { dashboard: 'لوحة التحكم', services: 'خدماتنا', tracking: 'تتبع الخدمات', bookings: 'حجوزاتي', admin: 'إدارة النظام' };
+            document.getElementById('pageTitle').textContent = titles[page] || 'لوحة التحكم';
+            if (page === 'tracking' && map) setTimeout(() => map.invalidateSize(), 100);
+            if (page === 'dashboard') { loadStats(); displayRecentBookings(); }
+            if (page === 'bookings') displayAllBookings();
+        }
+
+        function displayServices() {
+            document.getElementById('servicesGrid').innerHTML = servicesList.map(s => `<div class="service-card" onclick="selectService(${s.id})" id="service-${s.id}"><div class="service-icon">${s.icon}</div><h3>${s.name}</h3><p>${s.shortDesc}</p><button class="book-now-btn" onclick="event.stopPropagation(); openBookingModal(${s.id})">احجز</button></div>`).join('');
+        }
+
+        function selectService(id) { document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected')); document.getElementById(`service-${id}`).classList.add('selected'); currentSelectedService = servicesList.find(s => s.id === id); }
+
+        function openBookingModal(id) { currentSelectedService = servicesList.find(s => s.id === id); document.getElementById('modalServiceName').textContent = `حجز: ${currentSelectedService.name}`; document.getElementById('modalFullName').value = currentUser?.name || ''; document.getElementById('modalPhone').value = currentUser?.phone || ''; document.getElementById('modalLocation').value = ''; document.getElementById('modalDateTime').value = ''; document.getElementById('modalCarDetails').value = ''; document.getElementById('bookingModal').classList.add('open'); }
+
+        function closeBookingModal() { document.getElementById('bookingModal').classList.remove('open'); }
+
+        async function submitModalBooking(e) {
+            e.preventDefault();
+            const booking = { service: currentSelectedService.name, name: document.getElementById('modalFullName').value, phone: document.getElementById('modalPhone').value, location: document.getElementById('modalLocation').value, dateTime: document.getElementById('modalDateTime').value, carDetails: document.getElementById('modalCarDetails').value, date: new Date().toISOString() };
+            const saved = await saveBookingToDB(booking);
+            if (saved) { alert(`✅ تم حجز "${currentSelectedService.name}" بنجاح!`); closeBookingModal(); loadUserBookings(); loadStats(); }
+            else alert('❌ حدث خطأ في حفظ الحجز');
+        }
+        document.getElementById('modalBookingForm').addEventListener('submit', submitModalBooking);
+
+        function displayRecentBookings() {
+            let bookings = JSON.parse(localStorage.getItem('carServeBookings') || '[]');
+            let recent = bookings.slice(-5).reverse();
+            let html = '<table style="width:100%; border-collapse: collapse;"> <thead><tr><th>الخدمة</th><th>العميل</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>';
+            recent.forEach(b => { html += `<tr><td>${b.service}</td><td>${b.name}</td><td>${b.dateTime ? new Date(b.dateTime).toLocaleDateString('ar') : '-'}</td><td><span style="background:#10b98120; padding:4px 12px; border-radius:20px;">جديد</span></td></tr>`; });
+            html += '</tbody></table>';
+            document.getElementById('recentBookingsList').innerHTML = html || '<p>لا توجد حجوزات</p>';
+        }
+
+        function displayAllBookings() {
+            let bookings = JSON.parse(localStorage.getItem('carServeBookings') || '[]');
+            if (!bookings.length) { document.getElementById('allBookingsList').innerHTML = '<p>لا توجد حجوزات</p>'; return; }
+            let html = '<table style="width:100%; border-collapse: collapse;"> <thead><tr><th>الخدمة</th><th>العميل</th><th>الهاتف</th><th>الموقع</th><th>التاريخ</th></tr></thead><tbody>';
+            bookings.reverse().forEach(b => { html += `<tr><td>${b.service}</td><td>${b.name}</td><td>${b.phone}</td><td>${b.location}</td><td>${b.dateTime ? new Date(b.dateTime).toLocaleString('ar') : '-'}</td></tr>`; });
+            html += '</tbody></table>';
+            document.getElementById('allBookingsList').innerHTML = html;
+        }
+
+        function initCharts() {
+            new Chart(document.getElementById('servicesChart'), { type: 'line', data: { labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'], datasets: [{ label: 'الخدمات', data: [8,12,18,22,25,28,24], borderColor: '#3b82f6', fill: true, backgroundColor: 'rgba(59,130,246,0.1)' }] }, options: { responsive: true } });
+            new Chart(document.getElementById('servicesPieChart'), { type: 'doughnut', data: { labels: ['فحص', 'غسيل', 'صيانة', 'إكسسوارات'], datasets: [{ data: [45,30,25,20], backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'] }] }, options: { responsive: true } });
+        }
+
+        function initMap() {
+            map = L.map('map').setView([30.0444, 31.2357], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            updateTeamsMarkers();
+            map.on('click', e => { document.getElementById('clientLocation').value = `${e.latlng.lat}, ${e.latlng.lng}`; if (clientMarker) map.removeLayer(clientMarker); clientMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map).bindPopup('📍 موقعك').openPopup(); });
+        }
+
+        function updateTeamsMarkers() { if (!map) return; markers.forEach(m => map.removeLayer(m)); markers = []; teams.forEach(team => { const marker = L.marker([team.lat, team.lng], { icon: L.divIcon({ html: `<div style="background:${team.status === 'active' ? '#3b82f6' : '#ef4444'}; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 2px 5px rgba(0,0,0,0.2);">${team.icon}</div>`, iconSize: [40,40] }) }).addTo(map); marker.bindPopup(`<b>${team.name}</b><br>الحالة: ${team.status === 'active' ? 'متاح' : 'مشغول'}`); markers.push(marker); }); }
+
+        function displayTeamsList() { document.getElementById('teamsList').innerHTML = teams.map(team => `<div class="team-badge" onclick="focusOnTeam(${team.lat}, ${team.lng})"><span class="status ${team.status === 'busy' ? 'busy' : ''}"></span>${team.icon} ${team.name}</div>`).join(''); }
+
+        function focusOnTeam(lat, lng) { if (map) map.setView([lat, lng], 15); }
+
+        function sendLocation() {
+            const loc = document.getElementById('clientLocation').value;
+            if (!loc) { alert('الرجاء إدخال موقعك'); return; }
+            let coords = loc.includes(',') ? loc.split(',').map(Number) : [30.05 + Math.random() * 0.1, 31.23 + Math.random() * 0.1];
+            if (clientMarker) map.removeLayer(clientMarker);
+            clientMarker = L.marker([coords[0], coords[1]]).addTo(map).bindPopup('📍 موقعك - تم إرسال الطلب').openPopup();
+            map.setView([coords[0], coords[1]], 14);
+            document.getElementById('locationStatus').innerHTML = '✅ تم إرسال موقعك. أقرب فريق في الطريق إليك!';
+            setTimeout(() => simulateTeamMovement(coords), 2000);
+        }
+
+        function simulateTeamMovement(targetCoords) {
+            const nearestTeam = teams.find(t => t.status === 'active');
+            if (!nearestTeam) return;
+            let step = 0, steps = 20, startLat = nearestTeam.lat, startLng = nearestTeam.lng;
+            const targetLat = targetCoords[0], targetLng = targetCoords[1];
+            document.getElementById('locationStatus').innerHTML = '🚗 الفريق في طريقه إليك...';
+            if (movementInterval) clearInterval(movementInterval);
+            movementInterval = setInterval(() => {
+                if (step >= steps) { clearInterval(movementInterval); document.getElementById('locationStatus').innerHTML = '✅✅ وصل الفريق! ✅✅'; nearestTeam.status = 'busy'; updateTeamsMarkers(); displayTeamsList(); return; }
+                const newLat = startLat + (targetLat - startLat) * (step / steps);
+                const newLng = startLng + (targetLng - startLng) * (step / steps);
+                const idx = teams.findIndex(t => t.id === nearestTeam.id);
+                if (idx !== -1) { teams[idx].lat = newLat; teams[idx].lng = newLng; }
+                updateTeamsMarkers();
+                step++;
+            }, 500);
+        }
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(p => { const lat = p.coords.latitude, lng = p.coords.longitude; document.getElementById('clientLocation').value = `${lat}, ${lng}`; if (clientMarker) map.removeLayer(clientMarker); clientMarker = L.marker([lat, lng]).addTo(map).bindPopup('📍 موقعك الحالي').openPopup(); map.setView([lat, lng], 15); }, () => alert('لم نتمكن من الحصول على موقعك'));
+            } else { alert('المتصفح لا يدعم تحديد الموقع'); }
+        }
+
+        // تهيئة كل شيء
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (await checkAuth()) {
+                initCharts();
+                displayServices();
+                initMap();
+                displayTeamsList();
+                
+                // تهيئة الشات
+                initChatDrag();
+                initAutoResize();
+                
+                // ربط زر الفتح
+                document.getElementById('openChatBtn').addEventListener('click', openChat);
+                
+                // إرسال بالضغط على Enter
+                document.getElementById('chatMessageInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendChatMessage();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

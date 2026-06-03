@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Car Expert - تسجيل الدخول</title>
+
+    <style>
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        body{
+            font-family:'Tajawal','Segoe UI',sans-serif;
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:20px;
+
+            background:
+                linear-gradient(rgba(15,23,42,0.78), rgba(15,23,42,0.88)),
+                url('/static/login-bg.jpg');
+
+            background-size:cover;
+            background-position:center;
+            background-repeat:no-repeat;
+            background-attachment:fixed;
+
+            overflow:hidden;
+            position:relative;
+        }
+
+        body::before{
+            content:'';
+            position:absolute;
+            inset:0;
+            background:
+                radial-gradient(circle at top right, rgba(59,130,246,0.18), transparent 30%),
+                radial-gradient(circle at bottom left, rgba(37,99,235,0.18), transparent 30%);
+            pointer-events:none;
+        }
+
+        .auth-container{
+            position:relative;
+            z-index:2;
+
+            width:100%;
+            max-width:460px;
+
+            padding:40px;
+
+            border-radius:32px;
+
+            background:rgba(255,255,255,0.10);
+
+            backdrop-filter:blur(18px);
+            -webkit-backdrop-filter:blur(18px);
+
+            border:1px solid rgba(255,255,255,0.12);
+
+            box-shadow:
+                0 25px 50px rgba(0,0,0,0.35),
+                inset 0 1px 1px rgba(255,255,255,0.08);
+
+            text-align:center;
+        }
+
+        .logo-area{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:12px;
+            margin-bottom:20px;
+        }
+
+        .logo-img{
+            width:55px;
+            height:55px;
+            border-radius:14px;
+            object-fit:cover;
+            box-shadow:0 8px 20px rgba(0,0,0,0.25);
+        }
+
+        .logo-text{
+            font-size:30px;
+            font-weight:800;
+            color:white;
+        }
+
+        .logo-text span{
+            color:#3b82f6;
+        }
+
+        .title{
+            font-size:25px;
+            font-weight:700;
+            margin-bottom:30px;
+            color:white;
+        }
+
+        .form-group{
+            margin-bottom:20px;
+            text-align:right;
+        }
+
+        .form-group label{
+            display:block;
+            margin-bottom:8px;
+            font-weight:600;
+            color:#e2e8f0;
+        }
+
+        .form-group input{
+            width:100%;
+            padding:15px 18px;
+
+            border-radius:18px;
+
+            border:1px solid rgba(255,255,255,0.10);
+
+            background:rgba(255,255,255,0.08);
+
+            color:white;
+
+            font-family:inherit;
+            font-size:15px;
+
+            transition:0.3s;
+        }
+
+        .form-group input::placeholder{
+            color:#cbd5e1;
+        }
+
+        .form-group input:focus{
+            outline:none;
+            border-color:#3b82f6;
+
+            background:rgba(255,255,255,0.12);
+
+            box-shadow:0 0 0 4px rgba(59,130,246,0.15);
+        }
+
+        .btn-primary{
+            width:100%;
+
+            background:linear-gradient(135deg,#3b82f6,#2563eb);
+
+            color:white;
+
+            border:none;
+
+            padding:15px;
+
+            border-radius:30px;
+
+            font-size:16px;
+            font-weight:700;
+
+            cursor:pointer;
+
+            transition:0.3s;
+        }
+
+        .btn-primary:hover{
+            transform:translateY(-2px);
+            box-shadow:0 12px 25px rgba(37,99,235,0.35);
+        }
+
+        .switch-link{
+            text-align:center;
+            margin-top:22px;
+            color:#cbd5e1;
+            font-size:15px;
+        }
+
+        .switch-link a{
+            color:#60a5fa;
+            text-decoration:none;
+            font-weight:700;
+            cursor:pointer;
+        }
+
+        .forgot-link{
+            text-align:left;
+            margin-top:10px;
+        }
+
+        .forgot-link a{
+            color:#cbd5e1;
+            font-size:13px;
+            text-decoration:none;
+        }
+
+        .error-message{
+            background:rgba(239,68,68,0.18);
+            color:#fff;
+
+            padding:12px;
+
+            border-radius:14px;
+
+            margin-bottom:20px;
+
+            text-align:center;
+
+            display:none;
+
+            border:1px solid rgba(255,255,255,0.08);
+        }
+
+        @media(max-width:768px){
+
+            .auth-container{
+                padding:30px 22px;
+                border-radius:28px;
+            }
+
+            .logo-text{
+                font-size:26px;
+            }
+
+            .title{
+                font-size:22px;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="auth-container">
+
+        <div class="logo-area">
+            <img
+                src="/static/logo.png"
+                class="logo-img"
+                alt="Logo"
+                onerror="this.style.display='none'"
+            />
+
+            <div class="logo-text">
+                Car<span>Expert</span>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <!-- LOGIN -->
+
+        <div id="loginForm">
+
+            <div class="title">
+                تسجيل الدخول
+            </div>
+
+            <div class="form-group">
+                <label>البريد الإلكتروني</label>
+
+                <input
+                    type="email"
+                    id="loginEmail"
+                    placeholder="example@email.com"
+                />
+            </div>
+
+            <div class="form-group">
+                <label>كلمة المرور</label>
+
+                <input
+                    type="password"
+                    id="loginPassword"
+                    placeholder="********"
+                />
+            </div>
+
+            <div class="forgot-link">
+                <a href="/forget-password.html">
+                    نسيت كلمة المرور؟
+                </a>
+            </div>
+
+            <button class="btn-primary" onclick="login()">
+                تسجيل الدخول
+            </button>
+
+            <div class="switch-link">
+                ليس لديك حساب؟
+                <a onclick="switchToSignup()">
+                    إنشاء حساب جديد
+                </a>
+            </div>
+
+        </div>
+
+        <!-- SIGNUP -->
+
+        <div id="signupForm" style="display:none;">
+
+            <div class="title">
+                إنشاء حساب جديد
+            </div>
+
+            <div class="form-group">
+                <label>الاسم الكامل</label>
+
+                <input
+                    type="text"
+                    id="signupName"
+                    placeholder="أدخل اسمك"
+                />
+            </div>
+
+            <div class="form-group">
+                <label>البريد الإلكتروني</label>
+
+                <input
+                    type="email"
+                    id="signupEmail"
+                    placeholder="example@email.com"
+                />
+            </div>
+
+            <div class="form-group">
+                <label>رقم الهاتف</label>
+
+                <input
+                    type="tel"
+                    id="signupPhone"
+                    placeholder="05xxxxxxxx"
+                />
+            </div>
+
+            <div class="form-group">
+                <label>كلمة المرور</label>
+
+                <input
+                    type="password"
+                    id="signupPassword"
+                    placeholder="********"
+                />
+            </div>
+
+            <div class="form-group">
+                <label>تأكيد كلمة المرور</label>
+
+                <input
+                    type="password"
+                    id="signupConfirmPassword"
+                    placeholder="********"
+                />
+            </div>
+
+            <button class="btn-primary" onclick="signup()">
+                إنشاء حساب
+            </button>
+
+            <div class="switch-link">
+                لديك حساب بالفعل؟
+                <a onclick="switchToLogin()">
+                    تسجيل الدخول
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        function showError(message){
+
+            const errorDiv =
+                document.getElementById('errorMessage');
+
+            errorDiv.textContent = message;
+
+            errorDiv.style.display = 'block';
+
+            setTimeout(() => {
+
+                errorDiv.style.display = 'none';
+
+            },3000);
+        }
+
+        function switchToSignup(){
+
+            document.getElementById('loginForm')
+                .style.display = 'none';
+
+            document.getElementById('signupForm')
+                .style.display = 'block';
+        }
+
+        function switchToLogin(){
+
+            document.getElementById('signupForm')
+                .style.display = 'none';
+
+            document.getElementById('loginForm')
+                .style.display = 'block';
+        }
+
+        function signup(){
+
+            const name =
+                document.getElementById('signupName').value;
+
+            const email =
+                document.getElementById('signupEmail').value;
+
+            const phone =
+                document.getElementById('signupPhone').value;
+
+            const password =
+                document.getElementById('signupPassword').value;
+
+            const confirmPassword =
+                document.getElementById('signupConfirmPassword').value;
+
+            if(!name || !email || !phone || !password){
+
+                showError('❌ الرجاء تعبئة جميع الحقول');
+
+                return;
+            }
+
+            if(password !== confirmPassword){
+
+                showError('❌ كلمة المرور غير متطابقة');
+
+                return;
+            }
+
+            const users =
+                JSON.parse(localStorage.getItem('carServeUsers') || '[]');
+
+            if(users.find(u => u.email === email)){
+
+                showError('❌ البريد الإلكتروني مستخدم بالفعل');
+
+                return;
+            }
+
+            const newUser = {
+                id: Date.now(),
+                name,
+                email,
+                phone,
+                password: btoa(password)
+            };
+
+            users.push(newUser);
+
+            localStorage.setItem(
+                'carServeUsers',
+                JSON.stringify(users)
+            );
+
+            localStorage.setItem(
+                'carServeUser',
+                JSON.stringify({name,email,phone})
+            );
+
+            showError('✅ تم إنشاء الحساب بنجاح!');
+
+            setTimeout(() => {
+
+                window.location.href = '/dashboard.html';
+
+            },1500);
+        }
+
+        function login(){
+
+            const email =
+                document.getElementById('loginEmail').value;
+
+            const password =
+                document.getElementById('loginPassword').value;
+
+            if(!email || !password){
+
+                showError('❌ الرجاء إدخال البريد الإلكتروني وكلمة المرور');
+
+                return;
+            }
+
+            const users =
+                JSON.parse(localStorage.getItem('carServeUsers') || '[]');
+
+            const user =
+                users.find(
+                    u =>
+                    u.email === email &&
+                    u.password === btoa(password)
+                );
+
+            if(!user){
+
+                showError('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة');
+
+                return;
+            }
+
+            localStorage.setItem(
+                'carServeUser',
+                JSON.stringify({
+                    name:user.name,
+                    email:user.email,
+                    phone:user.phone
+                })
+            );
+
+            showError('✅ تم تسجيل الدخول بنجاح!');
+
+            setTimeout(() => {
+
+                window.location.href = '/dashboard.html';
+
+            },1000);
+        }
+
+    </script>
+
+</body>
+</html>

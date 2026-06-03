@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Car Expert - شات</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .chat-container {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .chat-header {
+            background: #1e3a8a;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8fafc;
+        }
+        .message {
+            margin-bottom: 10px;
+            display: flex;
+        }
+        .user {
+            justify-content: flex-end;
+        }
+        .bot {
+            justify-content: flex-start;
+        }
+        .message-content {
+            max-width: 70%;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .user .message-content {
+            background: #3b82f6;
+            color: white;
+        }
+        .bot .message-content {
+            background: white;
+            color: black;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .input-area {
+            display: flex;
+            padding: 10px;
+            background: white;
+            gap: 8px;
+            border-top: 1px solid #ddd;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-family: inherit;
+        }
+        .input-area button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            width: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h3>🤖 Car Expert AI</h3>
+        </div>
+        <div class="chat-messages" id="messages">
+            <div class="message bot">
+                <div class="message-content">مرحباً! اكتب مشكلة سيارتك وسأحللها.</div>
+            </div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="question" placeholder="مثال: صوت الماتور عالي">
+            <button onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+    <script>
+        let userId = 1;
+
+        async function sendMessage() {
+            const input = document.getElementById('question');
+            const message = input.value.trim();
+            if (!message) return;
+
+            addMessage(message, 'user');
+            input.value = '';
+
+            try {
+                const formData = new FormData();
+                formData.append('user_id', userId);
+                formData.append('message', message);
+
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                addMessage(data.diagnosis || 'حدث خطأ', 'bot');
+            } catch (error) {
+                addMessage('خطأ في الاتصال', 'bot');
+            }
+        }
+
+        function addMessage(text, sender) {
+            const container = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            div.innerHTML = `<div class="message-content">${text.replace(/\n/g, '<br>')}</div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+</body>
+</html>
